@@ -100,7 +100,7 @@ function macro_Rss($formatter,$value) {
   $key=_rawurlencode($value);
 
   $cache= new Cache_text("rss");
-  # reflash rss each 7200 second (60*60*2) 2 hours
+  # refresh rss each 7200 second (60*60*2) 2 hours
 #  if (1) {
   if (!$cache->exists($key) or (time() > $cache->mtime($key) + 7200 )) {
     $URL_parsed = parse_url($value);
@@ -122,16 +122,22 @@ function macro_Rss($formatter,$value) {
     if (!$fp)
       return ("[[RSS(ERR: not a valid URL! $value)]]");
 
-#   while ($data = fread($fp, 4096)) $xml_data.=$data;
-#   fclose($fp);
-
     fputs($fp, $out);
     $body = false;
     while (!feof($fp)) {
       $data = fgets($fp, 4096);
       if ($body == false) {
-        if (preg_match('/Location:(.[^ ]*)/',$data,$m))
-          return (sprintf("[[RSS(ERR: not a valid URL! Location: %s)]]", $m[1]));
+        if (preg_match('/Location: http:\/\/(.[^\/]*)(.*)/',$data,$m))
+        {
+          fclose($fp);
+          $host = $m[1];
+          $path = $m[2];
+          $out = "GET $path HTTP/1.0\r\nHost: $host\r\n\r\n";
+
+          $fp = fsockopen($host, $port, $errno, $errstr, 30);
+          fputs($fp, $out);
+          continue;
+        }
       }
       else {
         $xml_data .= $data;

@@ -2,14 +2,13 @@
 // All rights reserved. Distributable under GPL see COPYING
 // a atom macro plugin for the MoniWiki
 //
-// Date: 2014-02-17
+// Date: 2014-05-11
 // Name: Atom Feeder/Reader
 // Description: Atom Plugin
-// URL: hrp:AtomMacro
-// Version: $Revision: 1.3$
-// License: GPL
+// URL: AtomMacro
+// Version: $Revision: 1.4$
+// License: GPLv2
 //
-// $Id: atom.php,v 1.3 patch 2014/02/13 15:48:49 hyacinth Exp $
 // $Id: atom.php,v 1.3 2010/07/09 11:03:27 wkpark Exp $
 // $orig Id: rss.php,v 1.7 2010/08/23 09:15:23 wkpark Exp $
 // $orig Id: rss_rc.php,v 1.12 2005/09/13 09:10:52 wkpark Exp $
@@ -109,9 +108,8 @@ function macro_Atom($formatter,$value) {
   $key=_rawurlencode($value);
 
   $cache= new Cache_text("atom");
-  # reflash rss each 7200 second (60*60*2)
+  # refresh rss each 7200 second (60*60*2)
   if (!$cache->exists($key) or (time() > $cache->mtime($key) + 7200 )) {
-   # $fp = @fopen("$value","r");
     $URL_parsed = parse_url($value);
 
     $host = $URL_parsed["host"];
@@ -130,15 +128,22 @@ function macro_Atom($formatter,$value) {
     if (!$fp)
       return ("[[Atom(ERR: not a valid URL! $value)]]");
 
-#   while ($data = fread($fp, 4096)) $xml_data.=$data;
-#   fclose($fp);
     fputs($fp, $out);
     $body = false;
     while (!feof($fp)) {
       $data = fgets($fp, 4096);
       if ($body == false) {
-        if (preg_match('/Location:(.[^ ]*)/',$data,$m))
-          return (sprintf("[[Atom(ERR: not a valid URL! Location: %s)]]", $m[1]));
+        if (preg_match('/Location: http:\/\/(.[^\/]*)(.*)/',$data,$m))
+        {
+          fclose($fp);
+          $host = $m[1];
+          $path = $m[2];
+          $out = "GET $path HTTP/1.0\r\nHost: $host\r\n\r\n";
+
+          $fp = fsockopen($host, $port, $errno, $errstr, 30);
+          fputs($fp, $out);
+          continue;
+        }
       }
       else {
         $xml_data .= $data;

@@ -164,6 +164,8 @@ function macro_Atom($formatter,$value) {
   # override $charset for php5
   if ((int)phpversion() >= 5) $charset='UTF-8';
 
+  $xml_data=str_replace("&","&amp;",$xml_data);
+
   ob_start();
   $ret= xml_parse($xml_parser, $xml_data);
 

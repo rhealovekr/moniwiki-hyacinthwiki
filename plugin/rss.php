@@ -162,6 +162,12 @@ function macro_Rss($formatter,$value) {
   # override $charset for php5
   if ((int)phpversion() >= 5) $charset='UTF-8';
 
+  $xml_data=str_replace("&","&amp;",$xml_data);
+
+  ## except from rss format error (rss.naver.com)
+  ## (ex: http://blog.rss.naver.com/kistitld.xml)
+  $xml_data=preg_replace("/<rss.*\n<rss/m","<rss",$xml_data);
+
   ob_start();
   $ret= xml_parse($xml_parser, $xml_data);
 

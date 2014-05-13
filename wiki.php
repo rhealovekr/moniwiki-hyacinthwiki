@@ -4550,7 +4550,7 @@ class Formatter {
 
         ### 블로그 해당 일 본문을 1-pass 파싱하는 부분
         ### youtube thumbnail image 추가 2014/02/03
-        if (preg_match("/youtube\.com\/v\/(.[^&]*)&/",$line,$matches)) {
+        if (preg_match("/youtube\.com\/v\/(.[^&\?]*)(&|\?)/",$line,$matches)) {
           $temp = "http://i2.ytimg.com/vi/".$matches[1]."/hqdefault.jpg";
           array_push($images, $temp);
         }

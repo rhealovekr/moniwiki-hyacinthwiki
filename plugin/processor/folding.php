@@ -31,21 +31,22 @@ function processor_folding($formatter,$value="",$options=array()) {
 
     // allow wiki syntax in folding content
     ob_start();
-    $formatter->send_page($value);
+    $params = array('folding'=>1);
+    $formatter->send_page($value,$params);
     $value = ob_get_contents();
     ob_end_clean();
 
     $init_state_block = 'none';
     $init_state_img = 'f_up';
 
-    if ($args[0] == '+' &&
+    if ($args[0] == '+' and
         $args[1] == ' ') {
       $args = str_replace('+ ', '', $args);
       $init_state_block = 'block';
       $init_state_img = 'f_down';
     }
-    else if ($args[0] == '-' &&
-      $args[1] == ' ') {
+    else if ($args[0] == '-' and 
+             $args[1] == ' ') {
       $args = str_replace('- ', '', $args);
     }
 

@@ -3723,10 +3723,11 @@ class Formatter {
           $in_p= $line;
         }
         ### 본문 내용 후처리
+        ### alice.sne.jp roburt link 2014/05/13
+        $line = str_replace('alice.sne.jp/img', 'hyacinth.byus.net/detour.php?img=http://alice.sne.jp/img', $line);
         ### alice.dyndns.info 주소 변경 2014/05/10
-        if (strpos($line,'http://alice.dyndns.info') >= 0) {
-          $line = str_replace('alice.dyndns.info', 'alice.sne.jp', $line);
-        }
+        $line = str_replace('alice.dyndns.info/img', 'hyacinth.byus.net/detour.php?img=http://alice.sne.jp/img', $line);
+        $line = str_replace('alice.dyndns.info', 'alice.sne.jp', $line);
         ### Describe 제거 rhealove 2014/04/17
         if (preg_match('/^Describe/',$line)) {
           $line = "";
@@ -4165,7 +4166,7 @@ class Formatter {
       $this->sister_on=$sister_save;
     }
 
-    if (!empty($this->foots))
+    if (empty($options['folding']) and !empty($this->foots))
       echo $this->macro_repl('FootNote','',$options);
 
     if (!empty($this->update_pagelinks) and !empty($options['pagelinks']))
@@ -4764,9 +4765,7 @@ if (0) {
         }
         else {
           ### dyndns.info 주소 변경 2014/05/10
-          if (strpos($image,'http://alice.dyndns.info') >= 0) {
-            $image = str_replace('alice.dyndns.info', 'alice.sne.jp', $image);
-          }
+          $image = str_replace('alice.dyndns.info', 'alice.sne.jp', $image);
 
           $og .= "<meta property=\"og:image\" content=\"" . $image . "\" />\n";
 

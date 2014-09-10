@@ -4239,7 +4239,6 @@ function processor_php($formatter="",$value="") {
   return '<div class="wikiSyntax">'.$highlighted.'</div>';
 }
 
-### rhealove add
 /**
  * Comparaison de chaines unicode
  */

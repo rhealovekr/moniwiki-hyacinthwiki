@@ -694,6 +694,7 @@ class WikiDB {
       $pagename=preg_replace('%\.d/%', ':', $key);
 
     $pagename=strtr($pagename,'_','%');
+    $pagename = strtr($pagename, array('%0a' => "%1a")); // HACK "%0a" char bug
     return rawurldecode($pagename);
   }
 
@@ -705,7 +706,7 @@ class WikiDB {
     return @filemtime($this->text_dir);
   }
 
-  ### get (fake) creation time 페이지 생성일 2014/02/20 rhealove
+  ### get (fake) creation time 페이지 생성일 2014/02/20 hyacinth
   function crtime($pagename) {
     if (!$this->use_crtime)
       return;
@@ -1326,11 +1327,11 @@ class WikiPage {
   function get_instructions($body = '', $params = array()) {
     global $Config;
 
-    ### 사용자 키워드 2013/11/25 rhealove
+    ### 사용자 키워드 2013/11/25 hyacinth
     $pikeys=array('#redirect','#action','#title','#notitle','#keywords','#user-keywords','#user-desc','#noindex',
       '#format','#filter','#postfilter','#twinpages','#notwins','#nocomment','#comment',
       '#language','#camelcase','#nocamelcase','#cache','#nocache','#alias', '#linenum', '#nolinenum',
-      '#singlebracket','#nosinglebracket','#rating','#norating','#nodtd');
+      '#singlebracket','#nosinglebracket','#rating','#norating','#nodtd','#irccolor');
     $pi=array();
 
     $format='';
@@ -1520,7 +1521,7 @@ class WikiPage {
       $cur = $tcache->fetch($pagename);
       if (empty($cur)) $cur = array();
       $keys = array();
-      ### 사용자 키워드 2013/11/25 rhealove
+      ### 사용자 키워드 2013/11/25 hyacinth
       if (empty($pi['#keywords']) && empty($pi['#user-keywords'])) {
         $tcache->remove($pagename);
       } else {
@@ -1673,7 +1674,7 @@ class Formatter {
       $this->postfilters = '';
     }
 
-    $this->baserule=array("/<([^<>]*>)/",
+    $this->baserule=array("/(?<!\<)<(?=[^<>]*>)/",
                      "/&(?!([^&;]+|#[0-9]+|#x[0-9a-fA-F]+);)/",
                      "/(?<!')'''((?U)(?:[^']|(?<!')'(?!')|'')*)?'''(?!')/",
                      "/''''''/", // SixSingleQuote
@@ -1689,7 +1690,7 @@ class Formatter {
                      "/~~(?<!\s)(?!~)(?U)(.+)(?<!\s)~~/",
                      #"/(\\\\\\\\)/", # tex, pmWiki
                      );
-    $this->baserepl=array("&lt;\\1",
+    $this->baserepl=array("&lt;",
                      "&amp;",
                      "<strong>\\1</strong>",
                      "<strong></strong>",
@@ -2001,6 +2002,7 @@ class Formatter {
       }
       if ($url[0]=='#' and ($p=strpos($url,' '))) {
         $col=strtok($url,' '); $url=strtok('');
+        $url = str_replace('<', '&lt;', $url);
         if (!empty($this->use_htmlcolor) and !preg_match('/^#[0-9a-f]{6}$/i', $col)) {
           $col = substr($col, 1);
           return "<span style='color:$col'>$url</span>";
@@ -2013,7 +2015,7 @@ class Formatter {
         $fsz=array(
           '-5'=>'10%','-4'=>'20%','-3'=>'40%','-2'=>'60%','-1'=>'80%',
           '+1'=>'140%','+2'=>'180%','+3'=>'220%','+4'=>'260%','+5'=>'200%');
-        return "<span style='font-size:".$fsz[$m[1]]."'>$m[3]</span>";
+        return "<span style='font-size:".$fsz[$m[1]]."' class=\"fsz\">$m[3]</span>";
       }
 
       $url = str_replace("<","&lt;",$url);
@@ -2142,7 +2144,7 @@ class Formatter {
         $link=email_guard($link,$this->email_guard);
         $myname=!empty($myname) ? $myname:$link;
         #$link=preg_replace('/&(?!#?[a-z0-9]+;)/i','&amp;',$link);
-        return $this->icon['mailto']."<a class='externalLink' href='mailto:$link' $attr>$myname</a>$external_icon";
+        return $this->icon['mailto']."<a class='externalLink_Mail' href='mailto:$link' $attr>$myname</a>$external_icon";
       }
 
       if ($force or strstr($url, ' ') or strstr($url, '|')) {
@@ -2257,7 +2259,7 @@ class Formatter {
             $fetch_url = $this->fetch_action.
                 str_replace(array('&', '?'), array('%26', '%3f'), $url);
 
-          ### 이미지에 <a href="원본"></a> 붙임 2014/02/21 rhealove
+          ### 이미지에 <a href="원본"></a> 붙임 2014/02/21 hyacinth
           global $DBInfo;
           if (!empty($DBInfo->use_imagelink) && preg_match('/width|height/',$attr))
             return "<div class=\"$cls\"><div><a href=\"$url\"><img alt='$link' $attr src='$fetch_url' /></a>".
@@ -2273,6 +2275,11 @@ class Formatter {
         return "<a class='internalLink' href='$link'>$link</a>";
       }
       $url=urldecode($url);
+
+      // auto detect the encoding of a given URL
+      if (function_exists('mb_detect_encoding'))
+        $url = _autofixencode($url);
+
       return "<a class='externalLink' $attr href='$link' $this->external_target>$url</a>";
     } else {
       if ($url{0}=='?')
@@ -3107,7 +3114,7 @@ class Formatter {
     $paras = array();
     foreach ($tmp as $p) {
       // split attributes <(-2> => '(', '-2'
-      if (preg_match_all('/([\^_v\(:\)\!=]|[-\|]\d+|\d+%|#[0-9a-fA-F]{6}|(?:colspan|rowspan|[a-z]+)\s*=\s*.+)/', $p, $m))
+      if (preg_match_all('/([\^_v\(:\)\!=]|[-\|]\d+|\d+%|#[0-9a-fA-F]{6}|(?:colspan|rowspan|[a-z]+)\s*=\s*.+)/i', $p, $m))
         $paras = array_merge($paras, $m[1]);
       else
         $paras[] = $p;
@@ -3435,13 +3442,25 @@ class Formatter {
       }
 
       if (!empty($body)) {
-        ### XXX irc color hack 2014/03/17
-        if ($this->page->name == "irc logs" || 
-            $this->page->name == "test2")
+        ### XXX irc color hack
+        if (!empty($pi['#irccolor']))
         {
           $body=str_replace("0?","",$body);
           $body=preg_replace("/(\[\d\d:\d\d\]) (\*.*)/","$1 [[HTML(<font color='#009400'>)]]$2[[HTML(</font>)]]",$body);
           $body=preg_replace("/(\[\d\d:\d\d\])/","\{\{\{$1}}}",$body);
+          ### HexChat
+          $body=preg_replace("/20<(.*)>30/","<[[HTML(<font color='red'>)]]$1[[HTML(</font>)]]>",$body); # Me
+          $body=preg_replace("/18<(.*)18>/","<[[HTML(<font color='#000080'>)]]$1[[HTML(</font>)]]>",$body); # Oper
+          $body=preg_replace("/23(.*)23(.*)\n/","[[HTML(<font color='#CE5C00'>)]]$1$2[[HTML(</font>)]]\n",$body); # Joined
+          $body=preg_replace("/24(.*)\n/","[[HTML(<font color='#C4A000'>)]]$1$2 [[HTML(</font>)]]\n",$body); # Quit
+          $body=preg_replace("/22(.[^ ]*)? 26(.[^ ]*)? (.*)18(.*)?\n/","$1 [[HTML(<font color='#11A879'>)]]$2[[HTML(</font>)]] $3[[HTML(<font color='#000080'>)]]$4[[HTML(</font>)]] \n",$body); # Mode Change
+          $body=preg_replace("/(\d)/","$1",$body);
+          $body=preg_replace("/18(.[^]*)/","[[HTML(<font color='#000080'>)]]$1[[HTML(</font>)]]",$body);
+          $body=preg_replace("/19(.[^]*)/","[[HTML(<font color='#11A879'>)]]$1[[HTML(</font>)]]",$body);
+          $body=preg_replace("/22(.[^]*)/","[[HTML(<font color='#5C3566'>)]]$1[[HTML(</font>)]]",$body);
+          $body=preg_replace("/26(.[^]*)/","[[HTML(<font color='#11A879'>)]]$1[[HTML(</font>)]]",$body);
+          
+          ### mIRC
 #          $body=preg_replace("/<(@(hyacinth|Honoka).[^>]*)>/","<[[HTML(<font color='red'>)]]$1[[HTML(</font>)]]>",$body);
 #          $body=preg_replace("/<(\+(hyacinth|Honoka).[^>]*)>/","<[[HTML(<font color='red'>)]]$1[[HTML(</font>)]]>",$body);
           $body=preg_replace("/<(@.[^>]*)>/","<[[HTML(<font color='#000080'>)]]$1[[HTML(</font>)]]>",$body);
@@ -3576,7 +3595,6 @@ class Formatter {
       $this->linenum = $ii;
 
     $lcount = count($lines);
-    $keyword_found = 0;
     for (; $ii < $lcount; $ii++) {
       $line = $lines[$ii];
       $this->linenum++;
@@ -3618,7 +3636,7 @@ class Formatter {
         }
       }
 
-      ### 작성자: 주석 rhealove 2014/04/17
+      ### 작성자: 주석 hyacinth 2014/04/17
       if (preg_match('/^작성자:/',$line)) {
         $line = "##";
       }
@@ -3636,7 +3654,7 @@ class Formatter {
 
       if ($in_pre) {
         $pre_line.= "\n".$line;
-        if (preg_match("/^({{{(?:(?:[^{}]+|{[^{}]+}(?!})|(?<!{){{1,2}(?!{)|(?<!})}{1,2}(?!}))|(?1))*+}}})/x",
+        if (preg_match("/^({{{(?:(?:[^{}]+|{[^{}]+}(?!})|(?<!{){{1,2}(?!{)|(?<!})}{1,2}(?!})|(?<=\\\\)[{}]{3}(?!}))|(?1))*+}}})/x",
           $pre_line, $match)) {
 
           $p = strlen($match[1]);
@@ -3660,7 +3678,7 @@ class Formatter {
         }
       } else {
         $chunk = preg_replace_callback(
-                    "/(({{{(?:(?:[^{}]+|{[^{}]+}(?!})|(?<!{){{1,2}(?!{)|(?<!})}{1,2}(?!}))|(?2))*+}}})|".
+                    "/(({{{(?:(?:[^{}]+|{[^{}]+}(?!})|(?<!{){{1,2}(?!{)|(?<!})}{1,2}(?!})|(?<=\\\\)[{}]{3}(?!}))|(?2))*+}}})|".
                     // unclosed inline pre tags
                     "(?:(?!<{{{){{{}}}(?!}}})|{{{(?:{{{|}}})}}}))/x",
                     create_function('$m', 'return str_repeat("_", strlen($m[1]));'), $line);
@@ -3705,7 +3723,7 @@ class Formatter {
 
       $p_closeopen='';
       if (preg_match('/^[ ]*(-{4,})$/',$line, $m)) {
-        ### Category 이전 ---- 의 처리 -- rhealove 2014/04/08
+        ### Category 이전 ---- 의 처리 -- hyacinth 2014/04/08
         $nextline = $lines[$ii+1];
         if ($line == "----" && preg_match('/^(\[|)(Category.[^\]]*)(\]|)$/', $nextline)) {
           $line = "[[HTML(<hr class=\"category_hr\">)]]";
@@ -3723,21 +3741,20 @@ class Formatter {
           $in_p= $line;
         }
         ### 본문 내용 후처리
-        ### alice.sne.jp roburt link 2014/05/13
-        $line = str_replace('alice.sne.jp/img', 'hyacinth.byus.net/detour.php?img=http://alice.sne.jp/img', $line);
-        ### alice.dyndns.info 주소 변경 2014/05/10
-        $line = str_replace('alice.dyndns.info/img', 'hyacinth.byus.net/detour.php?img=http://alice.sne.jp/img', $line);
+        ### roburt link 2014/05/13
+        $line = str_replace('alice.sne.jp/img', 'hyacinth.byus.net/d.php?img=http://alice.sne.jp/img', $line);
+        $line = str_replace('alice.dyndns.info/img', 'hyacinth.byus.net/d.php?img=http://alice.sne.jp/img', $line);
         $line = str_replace('alice.dyndns.info', 'alice.sne.jp', $line);
-        ### Describe 제거 rhealove 2014/04/17
+        ### Describe 제거 hyacinth 2014/04/17
         if (preg_match('/^Describe/',$line)) {
           $line = "";
         }
-        ### Keyword인데 Category가 없으면 ---- 입력 rhealove 2014/04/17
-        if ($keyword_found == 1 && $ii+1 == $lcount) {
+        ### Keyword인데 Category가 없으면 ---- 입력 hyacinth 2014/04/17
+        if (empty($this->pi["#keywords"]) != 1 && $ii+1 == $lcount) {
           if (!preg_match('/^(\[|)Category.[^\]]*(\]|)$/', $nextline))
-          $line = "[[HTML(<hr class=\"category_hr\">)]]" . $line;
+          $line = "[[HTML(<hr class=\"keywords_hr\">)]]" . $line;
         }
-        ### Category를 tags 형식으로 변경 -- rhealove 2012/12/27
+        ### Category를 tags 형식으로 변경 -- hyacinth 2012/12/27
         if (preg_match('/^(\[|)(Category.[^\]]*)(\]|)$/', $line, $matches, PREG_OFFSET_CAPTURE)) {
           if (strcmp($line, 'CategoryCategory') == 0)
             $category = 'Category';
@@ -4479,7 +4496,7 @@ class Formatter {
       if ($pos > 0) $upper=substr($this->page->urlname,0,$pos);
       else if ($this->group) $upper=_urlencode(substr($this->page->name,strlen($this->group)));
       $keywords = '';
-      ### 사용자 키워드 추가 2013/11/25 rhealove
+      ### 사용자 키워드 추가 2013/11/25 hyacinth
       if (!empty($this->pi['#user-keywords'])) {
         if (!empty($this->pi['#keywords']))
           $keywords='<meta name="keywords" content="'.$this->pi['#keywords'].','.$this->pi['#user-keywords'].'" />'."\n";
@@ -4495,7 +4512,7 @@ class Formatter {
         $keywords=htmlspecialchars($keywords);
         $keywords="<meta name=\"keywords\" content=\"$keywords\" />\n";
       }
-      ### 사용자 요약 추가 2014/05/08 rhealove
+      ### 사용자 요약 추가 2014/05/08 hyacinth
       if (!empty($this->pi['#user-desc'])) {
         $description = $this->pi['#user-desc'];
       }
@@ -4527,10 +4544,10 @@ class Formatter {
       ### 블로그인 경우 Blog RSS
 
       if ($options['action'] == "blog" or preg_match('/^Blog.*/',$options['pagename'])) {
-        $relblogrss = '<link rel="alternate" type="application/rss+xml" title="hrp Atom Feed" href="http://feeds.feedburner.com/HrpBlog" />'."\n";
+        $relblogrss = '<link rel="alternate" type="application/rss+xml" title="HyacinthWiki Atom Feed" href="http://feeds.feedburner.com/HrpBlog" />'."\n";
       }
 
-      ### 블로그인 경우 본문 내용의 제목을 파싱해서 타이틀 설정 -- rhealove 2012/12/12
+      ### 블로그인 경우 본문 내용의 제목을 파싱해서 타이틀 설정 -- hyacinth 2012/12/12
       $tempbody = $this->page->get_raw_body($options);
       $tempbody=rtrim($tempbody); # delete last empty line
       $templines=explode("\n",$tempbody);
@@ -4574,7 +4591,7 @@ if (1) {
           $append=preg_replace("/htt(p|ps):.[^ \)]*/", "", $append);
           $append=preg_replace("/{{{{.[^}]*}/", "", $append);
           $append=str_replace("\\}}}", "", $append);
-          $append=preg_replace('/<.[^>]*>/', '', $append);
+          $append=preg_replace('/<[a-zA-Z].[^>]*>/', '', $append);
           $append=str_replace("\"", "", $append);
           $append=str_replace("'''", "", $append);
           $append=str_replace("''", "", $append);
@@ -4602,7 +4619,7 @@ if (0) {
         }
 #        echo "<!--$append-->";
 
-        ### #width xxx 스킨 가로 크기 지정 2013/11/25 rhealove
+        ### #width xxx 스킨 가로 크기 지정 2013/11/25 hyacinth
         if (preg_match('/^#width (.*)/', $line, $match)) {
             global $nosb;
             $nosb = $match[1];
@@ -4644,9 +4661,13 @@ if (0) {
       $description = preg_replace("/(\s){2,}/", '$1', $description);
       $description = trim($description);
       
-      ### find image -- rhealove 2013/11/08
+      ### find image -- hyacinth 2013/11/08
       $blog_flag=0;
       foreach ($templines as $line) {
+        if (preg_match('/^#title(.*)/',$line,$match)){
+          $this->page->title = $match[1];
+        }
+
         if (preg_match('/^##/',$line))
           continue;
         if (preg_match('/^{{{#!blog (.*)/',$line,$match)){
@@ -4672,10 +4693,6 @@ if (0) {
           array_push($images, $temp);
         }
       }
-      #if (empty($image)) {
-      #  $image="http://lua.kr/images/1/2beba805723160cb02e5ca70460cc9bebd0e097f.jpg";
-      #}
-      #echo "<!--" . $image ."-->";
 
       if (mb_strlen($description, 'utf-8') > 200) {
         $description = mb_substr($description, 0, 197, 'utf-8');
@@ -4696,7 +4713,7 @@ if (0) {
       global $_title;
       $_title = $options['title'];
 
-      ### Open Graph Tags -- rhealove 2013/04/22
+      ### Open Graph Tags -- hyacinth 2013/04/22
       $og = "<!-- Jetpack Open Graph Tags -->\n";
       $og .= "<meta property=\"og:title\" content=\"" . $options['title'] . "\" />\n";
       if (preg_match('/^Blog\/20/', $options['title']) ||
@@ -4711,7 +4728,7 @@ if (0) {
           strcmp($description, "No page found") == 0 ||
           strcmp($description, "Page does not exists") == 0) $og .= '<meta name="robots" content="noindex,nofollow" />'."\n";
       $og .= "<meta property=\"og:url\" content=\"http://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] . "\" />\n";
-      $og .= "<meta property=\"og:site_name\" content=\"hrp\" />\n";
+      $og .= "<meta property=\"og:site_name\" content=\"HyacinthWiki\" />\n";
 
       $twitter_card_image="";
       $og_image_cnt = 0;
@@ -4811,11 +4828,11 @@ JSHEAD;
       echo $twitter_card;
       echo $hide_blog_title;
       if (!empty($meta_lastmod)) echo $meta_lastmod;
-      ### 타이틀 순서 변경 2014/02/22 rhealove
+      ### 타이틀 순서 변경 2014/02/22 hyacinth
       #echo "  <title>$DBInfo->sitename: ",$options['title'],"</title>\n";
       echo "  <title>",$options['title']," - $DBInfo->sitename</title>\n";
       if (!empty($upper))
-        ### HTML5 link rel 2014/04/02 rhealove
+        ### HTML5 link rel 2014/04/02 hyacinth
         #echo '  <link rel="Up" href="',$this->link_url($upper),"\" />\n";
       $raw_url=$this->link_url($this->page->urlname,"?action=raw");
       $print_url=$this->link_url($this->page->urlname,"?action=print");
@@ -4931,7 +4948,7 @@ JSHEAD;
       $lasttime=gmdate("H:i:s",$mtime+$options['tz_offset']);
     }
 
-    ### 페이지 생성일 2014/02/20 rhealove
+    ### 페이지 생성일 2014/02/20 hyacinth
     if ($crtime=$DBInfo->crtime($options['page'])) {
       $crdit=gmdate("Y-m-d",$crtime+$options['tz_offset']);
       $crtime=gmdate("H:i:s",$crtime+$options['tz_offset']);
@@ -5016,7 +5033,7 @@ FOOT;
       $msgtitle = $options['msgtitle'];
     }
 
-    ### 블로그 제목 페이지 이름 설정 -- 2014-01/16 rhealove
+    ### 블로그 제목 페이지 이름 설정 -- 2014-01/16 hyacinth
     if ($options['action'] == 'blog' and !empty($options['value'])) {
       $title = $this->page->title;
     }
@@ -5051,8 +5068,9 @@ FOOT;
     }
     else if (empty($options['nolink'])) {
       $full_link = htmlspecialchars($_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI']);
-      if (strrpos($title, "/") > 0) {
-        ### / 링크 나눔 -- 2014/01/20 rhealove
+      if (strpos($mypgname, "log/20") != 1 &&
+          strrpos($title, "/") > 0) {
+        ### / 링크 나눔 -- 2014/01/20 hyacinth
         $sub_titles=explode("/", $title); 
         #print_r($sub_titles);
         $sub_append;
@@ -5076,7 +5094,10 @@ FOOT;
         $title=$append;
       }
       else {
-        $title=$this->link_to("?action=fullsearch$qext&amp;value="._urlencode($mypgname),$title);
+        if (strpos($mypgname, "log/20") != 1)
+        {
+          $title=$this->link_to("?action=fullsearch$qext&amp;value="._urlencode($mypgname),$title);
+        }
       }
     }
 
@@ -5176,7 +5197,7 @@ MSG;
         if (preg_match('/current/', $v)) {
           $cls .=' current';
         }
-        ### XXX 메뉴 이름 변경 2014/02/22 rhealove
+        ### XXX 메뉴 이름 변경 2014/02/22 hyacinth
         if (1){
         if (preg_match('/>hyacinth</',$menu[$k])) {
           $menu[$k]=str_replace('>hyacinth<','>대하여<',$menu[$k]);
@@ -6138,7 +6159,7 @@ function wiki_main($options) {
     }
     # display this page
 
-    ### &redirect robot noindex 2013/11/11 rhealove
+    ### &redirect robot noindex 2013/11/11 hyacinth
     if (isset($_GET['redirect'])){
       $options['metatags']="<meta name=\"robots\" content=\"noindex,nofollow\" />\n";
     }

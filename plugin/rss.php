@@ -31,7 +31,7 @@ class WikiRSSParser {
            if ($this->status) print "[$this->status] ";
            printf("<a href='%s' target='_content'>%s</a>",
              trim($this->link),
-             htmlspecialchars(trim($this->title)));
+             html_entity_decode(htmlspecialchars(trim($this->title))));
            #printf("<p>%s</p>",
            #  htmlspecialchars(trim($this->description)));
            if ($this->date) {
@@ -97,13 +97,29 @@ function macro_Rss($formatter,$value) {
   xml_set_element_handler($xml_parser, "startElement", "endElement");
   xml_set_character_data_handler($xml_parser, "characterData");
 
-  $key=_rawurlencode($value);
+  // get opt
+  if (preg_match("/(.[^,]*),(.*)/", $value, $matches))
+  {
+    $src = $matches[1];
+    $opt_raw = preg_split("/[\s,]+/", $matches[2]);
+
+    foreach($opt_raw as $optset) {
+      $optval = preg_split("/[\s=]+/", $optset);
+      $opt[$optval[0]] = $optval[1];
+    }
+  }
+  else
+  {
+    $src = $value;
+  }
+
+  $key=_rawurlencode($src);
 
   $cache= new Cache_text("rss");
-  # refresh rss each 7200 second (60*60*2) 2 hours
-#  if (1) {
-  if (!$cache->exists($key) or (time() > $cache->mtime($key) + 7200 )) {
-    $URL_parsed = parse_url($value);
+  # refresh rss each 3480 second (58*60) 58 min.
+  if (!$cache->exists($key) or (time() > $cache->mtime($key) + 3480)) {
+#  if (1) { // no cache
+    $URL_parsed = parse_url($src);
 
     $host = $URL_parsed["host"];
     $port = $URL_parsed["port"];
@@ -164,9 +180,13 @@ function macro_Rss($formatter,$value) {
 
   $xml_data=str_replace("&","&amp;",$xml_data);
 
-  ## except from rss format error (rss.naver.com)
-  ## (ex: http://blog.rss.naver.com/kistitld.xml)
-  $xml_data=preg_replace("/<rss.*\n<rss/m","<rss",$xml_data);
+  // exceptions for xml format error
+  // rss.naver.com, rss tag is twice coming out (...)
+  $xml_data=preg_replace("/<rss.*\n<rss/m","<rss",$xml_data); 
+  // document element error
+  $xml_data=preg_replace("/<\/rss.*\n0/m","</rss>",$xml_data); 
+  $xml_data=str_replace("","",$xml_data); // invalid characters
+  $xml_data=preg_replace("/<p>.[^<]*<\/p>/","",$xml_data); // delete contents
 
   ob_start();
   $ret= xml_parse($xml_parser, $xml_data);
@@ -187,7 +207,22 @@ function macro_Rss($formatter,$value) {
     if ($new !== false) return $new;
   }
 
-  return $out;
+  if (empty($opt["list"]))
+  {
+    return $out;
+  }
+  else
+  {
+    if ($opt["list"] <= 0)
+      return $out;
+
+    $lines = explode("<br />", $out);
+    $limit = $opt["list"] < count($lines) ? $opt["list"] : count($lines) - 1;
+    for ($i = 0; $i < $limit; ++$i) {
+      $lines_comp .= $lines[$i] . "<br />";
+    }
+    return $lines_comp;
+  }
 }
 
 ?>

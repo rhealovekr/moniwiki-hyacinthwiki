@@ -105,12 +105,29 @@ function macro_Atom($formatter,$value) {
   xml_set_element_handler($xml_parser, "startElement", "endElement");
   xml_set_character_data_handler($xml_parser, "characterData");
 
-  $key=_rawurlencode($value);
+  // get opt
+  if (preg_match("/(.[^,]*),(.*)/", $value, $matches))
+  {
+    $src = $matches[1];
+    $opt_raw = preg_split("/[\s,]+/", $matches[2]);
+
+    foreach($opt_raw as $optset) {
+      $optval = preg_split("/[\s=]+/", $optset);
+      $opt[$optval[0]] = $optval[1];
+    }
+  }
+  else
+  {
+    $src = $value;
+  }
+
+  $key=_rawurlencode($src);
 
   $cache= new Cache_text("atom");
-  # refresh rss each 7200 second (60*60*2)
-  if (!$cache->exists($key) or (time() > $cache->mtime($key) + 7200 )) {
-    $URL_parsed = parse_url($value);
+  # refresh rss each 3480 second (58*60) 58 min.
+  if (!$cache->exists($key) or (time() > $cache->mtime($key) + 3480)) {
+#  if (1) { // no cache
+    $URL_parsed = parse_url($src);
 
     $host = $URL_parsed["host"];
     $port = $URL_parsed["port"];
@@ -126,7 +143,7 @@ function macro_Atom($formatter,$value) {
     $fp = fsockopen($host, $port, $errno, $errstr, 30);
 
     if (!$fp)
-      return ("[[Atom(ERR: not a valid URL! $value)]]");
+      return ("[[Atom(ERR: not a valid URL! $src)]]");
 
     fputs($fp, $out);
     $body = false;
@@ -139,6 +156,7 @@ function macro_Atom($formatter,$value) {
           $host = $m[1];
           $path = $m[2];
           $out = "GET $path HTTP/1.0\r\nHost: $host\r\n\r\n";
+          echo $out;
 
           $fp = fsockopen($host, $port, $errno, $errstr, 30);
           fputs($fp, $out);
@@ -164,7 +182,12 @@ function macro_Atom($formatter,$value) {
   # override $charset for php5
   if ((int)phpversion() >= 5) $charset='UTF-8';
 
+  // exceptions for xml format error
   $xml_data=str_replace("&","&amp;",$xml_data);
+  $xml_data=str_replace("","",$xml_data);
+  $xml_data=preg_replace("/<p>.[^<]*<\/p>/","",$xml_data); // delete contents
+#  $xml_data = htmlspecialchars($xml_data);
+#  $xml_data = preg_replace("/<summary.*<\/summary>/", "", $xml_data);
 
   ob_start();
   $ret= xml_parse($xml_parser, $xml_data);
@@ -185,7 +208,22 @@ function macro_Atom($formatter,$value) {
     if ($new !== false) return $new;
   }
 
-  return $out;
+  if (empty($opt["list"]))
+  {
+    return $out;
+  }
+  else
+  {
+    if ($opt["list"] <= 0)
+      return $out;
+
+    $lines = explode("<br />", $out);
+    $limit = $opt["list"] < count($lines) ? $opt["list"] : count($lines) - 1;
+    for ($i = 0; $i < $limit; ++$i) {
+      $lines_comp .= $lines[$i] . "<br />";
+    }
+    return $lines_comp;
+  }
 }
 
 function do_atom($formatter,$options) {
@@ -239,10 +277,10 @@ CHANNEL;
     $extra="<br /><a href='$diff_url'>"._("show changes")."</a>\n";
     $content='';
     if (!$DBInfo->hasPage($page_name)) {
-      $status='deleted';
+      $status='Deleted';
       $content="<content type='html'><a href='$url'>$page_name</a> is deleted</content>\n";
     } else {
-      $status='updated';
+      $status='Updated';
       if ($options['diffs']) {
         $p=new WikiPage($page_name);
         $f=new Formatter($p);

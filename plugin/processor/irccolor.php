@@ -15,7 +15,7 @@
 // ...
 // }}}
 //
-// $Id: irccolor.php,v 1.7 2015/02/26 17:51:22 hyacinth Exp $
+// $Id: irccolor.php,v0.1 2015/02/26 17:51:22 hyacinth Exp $
 
 function processor_irccolor($formatter,$value="",$options=array()) {
     if ($value[0]=='#' and $value[1]=='!')
@@ -67,7 +67,7 @@ function processor_irccolor($formatter,$value="",$options=array()) {
       $line=preg_replace("/\d?\d/","",$line);
       $line=preg_replace("/||/","",$line);
 
-      // href
+      // url
       //$line=preg_replace("/(https?:\/\/([\da-z\.-]+\.[a-z\.]{2,6})([\/\w_\.-]*)*\/?)/","<a href=\"$1\">$1</a>",$line);
 
       $out.="$line<br />";

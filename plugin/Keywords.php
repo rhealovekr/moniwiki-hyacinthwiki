@@ -331,11 +331,11 @@ EOF;
     $link=$formatter->link_url(_rawurlencode($pagename),'');
     if (!isset($tag_link)) {
         if (empty($search)) $search='fullsearch&amp;keywords=1';
-        ### show keywords 2014/04/13 rhealove
+        // 키워드 링크를 전체 찾기로 변경 -- yhyacinth 2014/04/13 
         if (!empty($options['tour']))
-        #    $search='tour&amp;arena=keylinks';
-            $search='fullsearch&amp;keywords=1';
-        
+          #$search='tour&amp;arena=keylinks';
+          $search='fullsearch&amp;keywords=1';
+ 
         $tag_link=$formatter->link_url(_rawurlencode($pagename),
             '?action='.$search.'&amp;value=$TAG');
     }

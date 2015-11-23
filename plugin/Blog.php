@@ -6,8 +6,6 @@
 // Usage: ?action=Blog
 //
 // $Id: Blog.php,v 1.38 2010/08/23 09:20:34 wkpark Exp $
-//
-// reply CAPTCHA √ﬂ∞° -- hyacinth 2011/03/29 17:02:04
 
 function updateBlogList($formatter) {
   global $DBInfo;
@@ -110,7 +108,7 @@ function do_Blog($formatter,$options) {
   else
     $options['title'] = '';
 
-## reply CAPTCHA √ﬂ∞° -- hyacinth
+## reply CAPTCHA Ï∂îÍ∞Ä -- yhyacinth
 #  $ok_ticket=0;
 #  if (empty($use_any) and !empty($DBInfo->use_ticket) and $options['id'] == 'Anonymous') {
 #    if ($options['__seed'] and $options['check']) {
@@ -129,7 +127,7 @@ function do_Blog($formatter,$options) {
 #  } else {
 #    $ok_ticket=1;
 #  }
-## reply CAPTCHA √ﬂ∞° -- hyacinth
+## reply CAPTCHA Ï∂îÍ∞Ä -- yhyacinth
 
   if (empty($button_preview) && !empty($savetext)) {
     $savetext=preg_replace("/(?<!\\\\)}}}/","\}}}",$savetext);
@@ -175,18 +173,17 @@ function do_Blog($formatter,$options) {
           $i=count($lines);
         }
 
-# »®∆‰¿Ã¡ˆ √ﬂ∞° -- 2012/08/29 rhealove 
+        // ÌôàÌéòÏù¥ÏßÄ Ï∂îÍ∞Ä -- yhyacinth 2012/08/29 
         if (!empty($options['nosig']))
           $sig= '';
-		else if ($options['id'] != 'Anonymous') {
-		  $sig= '['.$options['id'].']';
-		}
+        else if ($options['id'] != 'Anonymous')
+          $sig= '['.$options['id'].']';
         else {
           if (strlen($homepage) == 0)
             $sig= $name;
           else
-		    $sig= '[[HTML(<a href="'.$homepage.'">'.$name.'</a>)]]';
-		}
+            $sig= '[[HTML(<a href="'.$homepage.'">'.$name.'</a>)]]';
+        }
         $lines[$i]="----\n$savetext -- $sig @TIME@\n$endtag";
         $raw_body=join("\n",$lines);
       } else {
@@ -278,8 +275,8 @@ function do_Blog($formatter,$options) {
         $formatter->send_footer("",$options);
         return;
       }
-#      $formatter->send_title(sprintf(_("Add Cddomment to \"%s\""),$title),"",$options);
-#add comment πÆ±∏ ¡¶∞≈ -- rhealove 2012/12/04
+      // add comment Î¨∏Íµ¨ Ï†úÍ±∞ -- yhyacinth 2012/12/04
+      //$formatter->send_title(sprintf(_("Add Cddomment to \"%s\""),$title),"",$options);
       $formatter->send_title("","",$options);
     } else {
       $formatter->send_title(sprintf(_("Add Blog entry to \"%s\""),$options['page']),"",$options);
@@ -296,7 +293,7 @@ function do_Blog($formatter,$options) {
         <input type="submit" name="button_refresh" value="Refresh" /></div>';
 
     print '<div id="editor_area">';
-    ### comment ¡¶∞≈ «‘ 2014/04/02 rhealove
+    // comment Ï†úÍ±∞ -- yhyacinth 2014/04/02
     if (!empty($options['value'])) {
       if (!empty($options['value'])) {
         $savetext=$savetext ? $savetext:'Add comment';
@@ -339,8 +336,8 @@ FORM;
 # Comment Start (Legacy)
    if ($DBInfo->blog_comments | empty($options['value'])) {
        if ($options['id'] == 'Anonymous') {
-## »®∆‰¿Ã¡ˆ √ﬂ∞° -- 2012/08/29 rhealove
-#      $myinput.='<b>'._("Name")."</b>: <input name='name' size='15' maxlength='15' value='$name' />\n";
+       // ÌôàÌéòÏù¥ÏßÄ Ï∂îÍ∞Ä -- yhyacinth 2012/08/29
+       #$myinput.='<b>'._("Name")."</b>: <input name='name' size='15' maxlength='15' value='$name' />\n";
            $homepage='http://';
            $myinput.='<b>'._("Name")."</b>: <input name='name' size='15' maxlength='15' value='$name' /> <b>"._("Homepage")."</b>: <input name='homepage' size='30' maxlength='80' value='$homepage' /> \n";
         }
@@ -352,9 +349,7 @@ FORM;
           print "<input name='nosig' type='checkbox' />"._("Don't add a signature")."<br />";
 
         $save_msg = _("Save");
-## Blogø°º± Preview ªË¡¶ -- rhealove 2012/08/29
-    #$preview_msg = _("Preview");
-## reply CAPTCHA √ﬂ∞° -- hyacinth
+## reply CAPTCHA Ï∂îÍ∞Ä -- yhyacinth
 #        if (empty($use_any) and !empty($DBInfo->use_ticket) and $options['id'] == 'Anonymous') {
 #            $seed=md5(base64_encode(time()));
 #            $ticketimg=$formatter->link_url($formatter->page->urlname,'?action=ticket&amp;__seed='.$seed);
@@ -364,7 +359,7 @@ FORM;
 #<input type="hidden" name="__seed" value="$seed" /></div>
 #EXTRA;
 #	    }
-## reply CAPTCHA √ﬂ∞° -- hyacinth
+## reply CAPTCHA Ï∂îÍ∞Ä -- yhyacinth
     print <<<FORM2
 <!--      $captcha -->
 		  <br>

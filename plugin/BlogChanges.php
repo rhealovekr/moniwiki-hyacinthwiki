@@ -275,36 +275,28 @@ function macro_BlogChanges($formatter,$value,$options=array()) {
   $limit = ($temp > 1) ? $temp:0;
  
   if (!$limit) {
-
-### ºˆƒ° ∫Ø∞Ê rhealove 2012/06/27 
+    // Ï∂úÎ†• ÏàòÏπò Î≥ÄÍ≤Ω -- yhyacinth 2012/06/27 
     if ($date) $limit=50; //$limit=30;
     else $limit=50;
   }
   if (in_array('titleonly',$opts)) {
-    $limit=6;
+    $limit=10;
   }
 
   if (in_array('all',$opts) or
       in_array('prev',$opts) or
       in_array('next',$opts)) {
-#    $blogs=Blog_cache::get_rc_blogs("all",$category_pages);
+    #$blogs=Blog_cache::get_rc_blogs("all",$category_pages);
     $blogs=Blog_cache::get_rc_blogs('20',$category_pages);
-#    print_r($blogs);
   }
   else if ($category_pages) {
-### «◊ªÛ year ±‚¡ÿ¿∏∑Œ ∫Ø∞Ê -- rhealove 2012/06/27
-#   $blogs=Blog_cache::get_rc_blogs($date,$category_pages);
+    // ÌéòÏù¥ÏßÄÎ•º date ÏóêÏÑú year Í∏∞Ï§ÄÏúºÎ°ú Î≥ÄÍ≤Ω -- yhyacinth 2012/06/27
+    #$blogs=Blog_cache::get_rc_blogs($date,$category_pages);
     $blogs=Blog_cache::get_rc_blogs(substr($date,0,4),$category_pages);
   } else if ($blog_page) {
     //$blogs=array($DBInfo->pageToKeyname($blog_page));
     $blogs=array($blog_page);
   }
-
-#  if (empty($blogs)) {
-#    // no blog entries found
-#    return _("No entries found");
-#  }
-#  print_r($blogs);
 
   if (in_array('summary',$opts))
     $logs=Blog_cache::get_summary($blogs,$options);
@@ -349,13 +341,15 @@ function macro_BlogChanges($formatter,$value,$options=array()) {
     $next_date= gmdate('Ymd',mktime(0,0,0,$month,intval($day) + 1,$year)+$tz_off);
   } else if (strlen($date)==6) {
     $cdate=date('Ym');
-# month ±‚¡ÿø°º≠ year ±‚¡ÿ¿∏∑Œ ∫Ø∞Ê -- rhealove 2012/06/27
-#    $prev_date= date('Ym',mktime(0,0,0,intval($month) - 1,1,$year)+$tz_off);
-#    if ($cdate > $date)
-#      $next_date= gmdate('Ym',mktime(0,0,0,intval($month) + 1,1,$year)+$tz_off);
+    // month Í∏∞Ï§ÄÏóêÏÑú year Í∏∞Ï§ÄÏúºÎ°ú Î≥ÄÍ≤Ω -- yhyacinth 2012/06/27
     $prev_date= date('Ym',mktime(0,0,0,intval($month) - 12,1,$year)+$tz_off);
     if ($cdate > $date)
       $next_date= gmdate('Ym',mktime(0,0,0,intval($month) + 12,1,$year)+$tz_off);
+
+    // legacy code
+    //$prev_date= date('Ym',mktime(0,0,0,intval($month) - 1,1,$year)+$tz_off);
+    //if ($cdate > $date)
+    //$next_date= gmdate('Ym',mktime(0,0,0,intval($month) + 1,1,$year)+$tz_off);
   }
 
 
@@ -376,11 +370,6 @@ function macro_BlogChanges($formatter,$value,$options=array()) {
   else if (in_array('next',$opts))
     $next_arrow = "<font style=\"font-family:Verdana\">&raquo;</font>";
 
-# ∏µ≈©∑Œ ¡˜¡¢ ¿Ãµø«œ∞‘ ∫Ø∞Ê
-#  $template='$out="$bullet<a href=\"$url#$tag\">$title</a> '. # org
-# ¡¶∏Ò «•Ω√
-#   $template='$out="$bullet$prev_arrow<a href=\"$url?action=blog&amp;value=$tag\">$title</a> '.'<span class=\"blog-user\">';
-
   if (in_array('recentposts',$opts))
     $template='$out="$bullet$prev_arrow<a href=\"$url?action=blog&amp;value=$tag\"><span class=\"blog-user\">';
   else {
@@ -393,7 +382,7 @@ function macro_BlogChanges($formatter,$value,$options=array()) {
       '<a href=\"$url#$tag\">$title</a> <a class=\"perma\" href=\"#$tag\">'.
       addslashes($formatter->perma_icon).
       '</a></div><span class=\"blog-user\">';
-  if (!in_array('nouser',$opts) and strpos($value, 'titleonly') == false)
+  if (!in_array('noauthor',$opts) and strpos($value, 'titleonly') == false)
     $template.='by $user ';
   if (!in_array('nodate',$opts)) {
     if (in_array('recentposts',$opts))
@@ -401,7 +390,7 @@ function macro_BlogChanges($formatter,$value,$options=array()) {
     else if (strpos($value, 'titleonly'))
       $template.='$date';
     else
-      # ≥Ø¬• «•±‚
+      // Î™©Î°ùÏóê ÎÇ†Ïßú ÌëúÏãú -- yhyacinth
       $template.='$date';
   }
 
@@ -426,13 +415,13 @@ function macro_BlogChanges($formatter,$value,$options=array()) {
     $summary = !empty($log[4]) ? $log[4] : '';
     $commentcount = !empty($log[5]) ? $log[5] : '';
 
-### bug?  2013-10-01 14:27:21 ->  2013-10-01T14:27:21 -- 2013/10/21
+    // bug? 2013-10-01 14:27:21 -> 2013-10-01T14:27:21 -- yhyacinth 2013/10/21
     $date = str_replace(' ', 'T', $date);
     $tag=md5($user.' '.$date.' '.$title);
 
     $datetag='';
 
-    ### ¿Ã¿¸ ∞‘Ω√±€/¥Ÿ¿Ω ∞‘Ω√±€ ¡ˆø¯ rhealove 2012/12/14
+    // Ïù¥Ï†Ñ Í≤åÏãúÍ∏Ä/Îã§Ïùå Í≤åÏãúÍ∏Ä ÏßÄÏõê -- yhyacinth 2012/12/14
     if (in_array('prev',$opts) || in_array('next',$opts)) {
       if (strcmp($tag, $md5sum) != 0)
         continue;
@@ -450,14 +439,14 @@ function macro_BlogChanges($formatter,$value,$options=array()) {
         $summary = !empty($log[4]) ? $log[4] : '';
         $commentcount = !empty($log[5]) ? $log[5] : '';
 
-        ### bug?  2013-10-01 14:27:21 ->  2013-10-01T14:27:21 -- 2013/10/21
+        // bug? 2013-10-01 14:27:21 -> 2013-10-01T14:27:21 -- yhyacinth 2013/10/21
         $date = str_replace(' ', 'T', $date);
         $tag=md5($user.' '.$date.' '.$title);
       }
     }
 
     $url=qualifiedUrl($formatter->link_url(_urlencode($page)));
-    if (empty($opts['nouser'])) {
+    if (empty($opts['noauthor'])) {
       if (preg_match('/^[\d\.]+$/',$user)) {
         if (!$DBInfo->mask_hostname and $DBInfo->interwiki['Whois'])
           $user='<a href="'.$DBInfo->interwiki['Whois'].$user.'">'.
@@ -475,14 +464,14 @@ function macro_BlogChanges($formatter,$value,$options=array()) {
     $time=strtotime($date.' GMT');
 
     if (in_array('titleonly',$opts))
-      # «•±‚πÊΩƒ ∫Ø∞Ê 2014/04/18
-      #$date= gmdate('D, d M Y',$time+$tz_off);
+      // ÎÇ†Ïßú ÌëúÍ∏∞ Î∞©Ïãù Î≥ÄÍ≤Ω -- yhyacinth 2014/04/18
+      //$date= gmdate('D, d M Y',$time+$tz_off);
       $date= gmdate('F jS, Y',$time+$tz_off);
     else if (in_array('titleonly',$opts))
       $date= "";
     else
-      # «•±‚πÊΩƒ ∫Ø∞Ê 2014/04/18
-      #$date= gmdate('m-d [h:i a] Y',$time+$tz_off);
+      // ÎÇ†Ïßú ÌëúÍ∏∞ Î∞©Ïãù Î≥ÄÍ≤Ω -- yhyacinth 2014/04/18
+      //$date= gmdate('m-d [h:i a] Y',$time+$tz_off);
       $date= gmdate('F jS, Y',$time+$tz_off);
     if (!empty($summary)) {
       $anchor= date('Ymd',$time);

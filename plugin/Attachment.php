@@ -392,8 +392,8 @@ function macro_Attachment($formatter,$value,$options=array()) {
       } else if (preg_match('@^(https?|ftp)://@',$alt))
         $img="<a href='$alt'>$img</a>";
 
-      ### ÀÌ¹ÌÁö »çÀÌÁî ÀĞÀ½. °¡·Î 670 ÀÌ»óÀÌ¸é ¿øº» Å¬¸¯ 2014/02/22 rhealove
-      $resized=0;
+      // ì´ë¯¸ì§€ ì‚¬ì´ì¦ˆ ì½ì–´ì„œ ê°€ë¡œ 670px ì´ìƒì´ë©´ ì›ë³¸ ë§í¬ ì¶”ê°€ -- yhyacinth 2014/02/22
+      $resized = 0;
       $image_local = $_SERVER["DOCUMENT_ROOT"]."/moniwiki/".$_l_upload_file;
 
       if (file_exists($image_local))
@@ -402,14 +402,15 @@ function macro_Attachment($formatter,$value,$options=array()) {
         echo $image_local; # err
 
       if ($width > 670)
-        $resized=1;
+        $resized = 1;
 
-      ### ÀÌ¹ÌÁö¿¡ <a href="¿øº»"></a> ºÙÀÓ 2014/02/21 rhealove
+      // ì´ë¯¸ì§€ì— <a href="ì›ë³¸ ì£¼ì†Œ"></a> ì¶”ê°€ -- yhyacinth 2014/02/21
       if (!empty($DBInfo->use_imagelink) && ($resized or preg_match('/width|height/',$attr)))
         return $bra.$cap_bra."<div class=\"$imgcls\"><div><a href=\"$url\">$img</a>$caption</div></div>".$cap_ket.$ket;
       else
         return $bra.$cap_bra."<div class=\"$imgcls\"><div>$img$caption</div></div>".$cap_ket.$ket;
-      #return $bra.$cap_bra."<span class=\"$cls\">$img$caption</span>".$cap_ket.$ket;
+      // legacy code
+      //return $bra.$cap_bra."<span class=\"$cls\">$img$caption</span>".$cap_ket.$ket;
     } else {
       $mydownload= $extra_action ? $extra_action:$mydownload;
       $link=$formatter->link_url(_urlencode($pagename),"?action=$mydownload&amp;value=".urlencode($value),$text);

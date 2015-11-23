@@ -50,22 +50,16 @@ function processor_blog($formatter,$value="",$options) {
     } else if ($DBInfo->hasPage($user)) {
       $user_id=$user;
       $user=$formatter->link_tag($user);
-      ### rel="author" √ﬂ∞° 2013/11/26 rhealove
+      // rel="author" Ï∂îÍ∞Ä -- yhyacinth 2013/11/26
       $append_author='" title="Submitted by '.$user_id.'"><span class="vcard author"><span class="fn" style="display:none;">Daehyeon Kim</span><span class="nickname">';
       $user=str_replace('" ><span>',$append_author,$user);
       $user=str_replace('th</span>','th</span></span>',$user);
     }
 
-    ### ≥Ø¬• «•±‚ πÊπ˝ ∫Ø∞Ê -- 2012/12/13 rhealove
+    // ÎÇ†Ïßú ÌëúÍ∏∞ Î∞©Î≤ï Î≥ÄÍ≤Ω -- yhyacinth 2012/12/13
     if ($date && $date[10] == 'T') {
       $date[10]=' ';
       $time=strtotime($date." GMT");
-# 1
-#      $date= gmdate("m-d [h:i a]",$time+$formatter->tz_offset);
-#      $date= gmdate("F jS, Y",$time+$formatter->tz_offset);
-# 2
-#      $date= gmdate("D, F jS Y",$time+$formatter->tz_offset);
-#      $date_content= gmdate("Y-m-d",$time+$formatter->tz_offset);
       $date= gmdate("F jS, Y",$time+$formatter->tz_offset);
       $date_content= gmdate("Y-m-d",$time+$formatter->tz_offset);
 
@@ -84,8 +78,8 @@ function processor_blog($formatter,$value="",$options) {
         $date_anchor= $anchor;
       }
     }
-    ### ±∏¡∂»≠µ» µ•¿Ã≈Õ ∏∂≈©æ˜ 2013/11/13 rhealove
-    $date = '</div><span class="meta date updated"><time datetime="'.$date_content.'">'.$date.'</time></span>';
+    // Íµ¨Ï°∞ÌôîÎêú Îç∞Ïù¥ÌÑ∞ ÎßàÌÅ¨ÏóÖ Ï†ïÎ≥¥ Ï∂îÍ∞Ä -- yhyacinth 2013/11/13
+    $date = '</div><span class="meta date updated published"><time datetime="'.$date_content.'">'.$date.'</time></span>';
     $md5sum=md5(substr($line,7));
   }
 
@@ -115,33 +109,36 @@ function processor_blog($formatter,$value="",$options) {
     if (!empty($formatter->trackback_list[$md5sum])) $counter=' ('.$formatter->trackback_list[$md5sum].')';
     else $counter='';
 
-#    if (empty($options['noaction']) and $md5sum) {
     if ($md5sum) {
-### disqus plugin added -- rhealove 2012/12/03
+      // disqus plugin added -- yhyacinth 2012/12/03
       $title_trim = str_replace('(', '\\\\(', $title);
       $title_trim = str_replace(')', '\\\\)', $title_trim);
+      $title_trim = str_replace('\'', '\\\'', $title_trim);
 	  $current_url = 'http://' . $_SERVER["HTTP_HOST"] . $_SERVER["REQUEST_URI"];
 	  $current_url_spe = htmlspecialchars($current_url);	  
       $year = date('Y',$time).'12';
-      $disqus = <<<DISQUS
-<script type="text/javascript">
-            (function() {
-                var blog_list_url = '<a href="http://hyacinth.byus.net/moniwiki/wiki.php/Blog?category=Blog/.*&amp;date=$year&amp;action=highlight&amp;value='+encodeURI('$title_trim')+'" rel="nofollow">';
 
-                document.write(blog_list_url + decodeURI('%EB%B8%94%EB%A1%9C%EA%B7%B8%20%EB%AA%A9%EB%A1%9D%20%EB%B3%B4%EA%B8%B0') + '</a>');
+$blog_list = <<<BLOG_LIST
+<script type="text/javascript">
+(function() {
+    var blog_list_url = '<div class="blog-list"><a href="http://hyacinth.byus.net/moniwiki/wiki.php/Blog?category=Blog/.*&amp;date=$year&amp;action=highlight&amp;value='+encodeURI('$title_trim')+'" rel="nofollow">';
+
+    document.write(blog_list_url + decodeURI('%EB%B8%94%EB%A1%9C%EA%B7%B8%20%EB%AA%A9%EB%A1%9D%20%EB%B3%B4%EA%B8%B0') + '</a></div>');
 //                document.write(blog_list_url + decodeURI('&laquo; Go Back') + '</a></div>');
-            })();
-        </script>
+})();
+</script>
+BLOG_LIST;
+
+$disqus = <<<DISQUS
 <div class='blog-disqus'>
 <div id="disqus_thread"></div>
         <script type="text/javascript">
-            var disqus_developer = 1;
             var disqus_url = '$current_url';
             var disqus_identifier = '$md5sum $current_url';
             var disqus_container_id = 'disqus_thread';
             var disqus_domain = 'disqus.com';
             var disqus_shortname = 'yhyacinth';
-            var disqus_title = 'hrp: $title';
+            var disqus_title = '$title_trim';
             
         </script>
 
@@ -158,7 +155,51 @@ function processor_blog($formatter,$value="",$options) {
                 dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
                 (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
 
+<!-- DISQUS Comment Count Begin -->
+var disqusPublicKey = "zoUYzH6fvlF4ha6xcOwoU0c2KjCC6wUUhcaS3MaoYVPjarbRzioR56fwHcZV4nPV";
+var disqusShortname = "yhyacinth";
+var urlArray = [];
+
+$(document).ready(function() {
+  urlArray.push('ident:' + "$md5sum $current_url");
+
+  $.ajax({
+    type: 'GET',
+    url: "https://disqus.com/api/3.0/threads/set.jsonp",
+    data: { api_key: disqusPublicKey, forum : disqusShortname, thread : urlArray }, // URL method
+    cache: false,
+    dataType: 'jsonp',
+    success: function (result) {
+      for (var i in result.response) {
+        var count = result.response[i].posts;
+
+        $('span[class="count"]').html("Ïù¥ Í∏ÄÏóêÎäî " + count + " Í∞úÏùò ÎåìÍ∏ÄÏù¥ ÏûàÏäµÎãàÎã§.");
+        if (count > 0)
+          $('i[class="fa fa-comment-o"]').attr('class','fa fa-comment');
+      }
+    }
+  });
+
+  $("#reveal-comments").click(function() {
+    if($("#comments-area").attr('style') == 'display: none;')
+      $("#comments-area").attr('style','display: block;');
+    else
+        $("#comments-area").attr('style','display: none;');
+  });
+
+  $('span[class="count"]').mouseover(function() {
+    $(this).attr('style','cursor: pointer; color: blue; text-decoration: underline;');
+  });
+
+  $('span[class="count"]').mouseout(function() {
+    $(this).attr('style','cursor: pointer; text-decoration: none;');
+  });
+
+});
+<!-- DISQUS Comment Count End -->
+
             })();
+
         </script>
         <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
         <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a><br /><br />
@@ -170,7 +211,8 @@ DISQUS;
 
     if (!empty($options['noaction'])) {
       $current_url = "http://" . $_SERVER["HTTP_HOST"] . "/moniwiki/wiki.php" . $_SERVER["PATH_INFO"] . "?action=blog&amp;value=" . $md5sum . "#disqus_thread"; 
-      $disqus_count = <<<DISQUS_COUNT
+
+$disqus_count = <<<DISQUS_COUNT
             <script type="text/javascript">
         /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
         var disqus_shortname = 'yhyacinth'; // required: replace example with your forum shortname
@@ -187,17 +229,30 @@ DISQUS;
         <span class='bullet'>&raquo;</span> <a href="$current_url">Link</a>.
     
 DISQUS_COUNT;
+
+$disqus_hide = <<<DISQUS_HIDE
+<a name="comments" id="comments-anchor"></a>
+<div id="reveal-comments" data-revealed="0">
+<!--   <div id="comment-count-bubble"><span class="count">0</span></div> -->
+  <p><i class="fa fa-comment-o" style="cursor:pointer"></i> <span class="count">Ïù¥ Í∏ÄÏóêÎäî 0 Í∞úÏùò ÎåìÍ∏ÄÏù¥ ÏûàÏäµÎãàÎã§.</span></p>
+</div>
+<div class="comments-overall" id="comments-area" style="display: none;">
+DISQUS_HIDE;
     }
       $comment_tag= $formatter->link_tag($formatter->page->urlname,"?action=blog&amp;value=$md5sum",$add_button);
-      # ƒ⁄∏‡∆Æ ¡¶∞≈ 2014/04/18
+      // remove comment_tag -- yhyacinth 2014/04/18
       #$action= $formatter->link_tag($formatter->page->urlname,"?action=trackback&amp;value=$md5sum",_("track back").$counter).' | '.$comment_tag.'<br />';
       $action= $formatter->link_tag($formatter->page->urlname,"?action=trackback&amp;value=$md5sum",_("track back").$counter).'<br />';
       if (getPlugin('SendPing')) {
             if (!empty($options['noaction'])) {
-                #$action.= 'Trackback: http://hyacinth.byus.net/moniwiki/wiki.php/Blog/2013-02/e5df5ecfb182e600d44565dd89442d73?action=trackback<br />';
+                $action.= '<div class="nav-block">';
                 $action.= $nav_post;
-                $action.= '<br /><hr />';
+                $action.= '</div>';
+                $action.= '<br />';
+                $action.= $blog_list;
+                $action.= $disqus_hide; // Disqus toggle -- yhyacinth 2014/09/09
                 $action.= $disqus;
+                $action.= '</div>'; // end of disqus
             }
             else {
                 $action.= $disqus_count;
@@ -236,11 +291,14 @@ DISQUS_COUNT;
     $perma="<a class='perma' href='#$tag'>$formatter->perma_icon</a>";
     $title=preg_replace("/(".$formatter->wordrule.")/e",
                         "\$formatter->link_repl('\\1')",$title);
-    ### ¿œ¿⁄ id rhealove 2013/04/04
-    #$timepost=strtotime($date." GMT");
-    #$day= gmdate("d",$timepost+$formatter->tz_offset);
-    #$out.="<div class='blog-title'><a id=\"$day\" name='$tag'></a>$title $perma</div>\n";
-    $out.="<div class='blog-title'><a href='/moniwiki/wiki.php".$_SERVER["PATH_INFO"]."?action=blog&amp;value=$tag' name=$tag style='color:black; text-decoration:none; font-size:16px;'>$title</a></div>\n";
+    if (!empty($options['noaction'])) {
+      // Î∏îÎ°úÍ∑∏ ÌÉÄÏù¥ÌãÄ ÎßÅÌÅ¨ Ï†úÍ±∞ -- yhyacinth 2015/01/22
+      $out.="<div class='blog-title'>$title</div>\n";
+    }
+    else {
+      // ÌÉÄÏù¥ÌãÄ ÎßÅÌÅ¨ -- yhyacinth 2013/04/04
+      $out.="<div class='blog-title'><a href='/moniwiki/wiki.php".$_SERVER["PATH_INFO"]."?action=blog&amp;value=$tag' name=$tag class='blog-title-link'>$title</a></div>\n";
+    }
   }
   $info = sprintf(_("Submitted by %s @ %s"), $user, $date);
   if (!empty($options['noaction'])) {
@@ -249,11 +307,9 @@ DISQUS_COUNT;
     $cur_page_raw = "http://hyacinth.byus.net".$_SERVER["REQUEST_URI"];
 
     $gplus = '<div id="blog-gplus" style="text-align:right"><div class="g-plusone" data-size="medium" data-align="right"></div></div>';
-#    $gplus = '<div class="sharedaddy sd-sharing-enabled"><div class="robots-nocontent sd-block sd-social sd-social-icon-text sd-sharing"><div class="sd-content"><ul><li class="share-twitter"><a rel="nofollow" class="share-twitter sd-button share-icon" href="https://twitter.com/intent/tweet?text='.$_title.'&url='.$cur_page.'" title="Click to share on Twitter" id="sharing-twitter"><span>Twitter</span></a></li><li class="share-facebook"><a rel="nofollow" class="share-facebook sd-button share-icon" href="https://www.facebook.com/sharer/sharer.php?u='.$cur_page.'&t=" title="Share on Facebook" id="sharing-facebook"><span>Facebook</span></a></li><li class="share-google-plus-1"><div style="margin-top:1px"><div class="g-plusone" data-width="200" data-size="medium"></div></div></li><li class="share-end"></li></ul></div></div>';
-#    $extra = '<script type="text/javascript">WPCOM_sharing_counts = {"'.$cur_page_raw.'":0}</script>';
   }
   $out.="<div class='blog-user'><div style='display:none'>$info</div>\n".
-    "<div class='blog-content entry-content' style='margin:0'>$msg</div><br />$gplus$extra$comments$action\n".
+    "<div class='blog-content entry-content' style='margin:0'>$msg</div><br />$gplus$comments$action\n".
     "</div>\n";
   return $out;
 }

@@ -3754,20 +3754,22 @@ class Formatter {
         if ($in_bq) { $p_closeopen.= str_repeat("</blockquote>\n", $in_bq); $in_bq = 0; }
         if ($in_p) { $p_closeopen.=$this->_div(0,$in_div,$div_enclose); $in_p='';}
       } else {
-        if ($in_p == '' and $line!=='') {
+        if (empty($options['raw']) and $in_p == '' and $line!=='') {
           $p_closeopen=$this->_div(1,$in_div,$div_enclose, $lid > 0 ? ' id="aline-'.$lid.'"' : '');
           $in_p= $line;
         }
         //// 본문 내용 후처리
-        // Roburt link 2014/05/13
-        $line = str_replace('alice.sne.jp/img', 'hyacinth.byus.net/d.php?img=http://alice.sne.jp/img', $line);
-        $line = str_replace('alice.dyndns.info/img', 'hyacinth.byus.net/d.php?img=http://alice.sne.jp/img', $line);
-        $line = str_replace('alice.dyndns.info', 'alice.sne.jp', $line);
-        // Describe 제거 yhyacinth 2014/04/17
+        // Roburt Macro -- yhyacinth 2015/11/23
+        if (preg_match("/alice\.dyndns\.info\/img/", $line)
+            or preg_match("/alice\.sne\.jp\/img/", $line)
+        ) {
+          $line = "[[RobustLink(". $line . ")]]";
+        }
+        // Describe 제거 -- yhyacinth 2014/04/17
         if (preg_match('/^Describe/',$line)) {
           $line = "";
         }
-        // Keyword인데 Category가 없으면 ---- 입력 yhyacinth 2014/04/17
+        // Keyword인데 Category가 없으면 ---- 입력 -- yhyacinth 2014/04/17
         if (empty($this->pi["#keywords"]) != 1 && $ii+1 == $lcount && $lcount != 1) {
           if (!preg_match('/^(\[|)Category.[^\]]*(\]|)$/', $nextline))
           $line = "[[HTML(<hr class=\"keywords_hr\">)]]" . $line;
@@ -4129,7 +4131,7 @@ class Formatter {
       }
 
       $lidx = '';
-      if ($lid > 0) $lidx = "<span class='line-anchor' id='line-".$lid."'></span>";
+      if (empty($options["raw"]) and $lid > 0) $lidx = "<span class='line-anchor' id='line-".$lid."'></span>";
 
       if (isset($line[0]) and $this->auto_linebreak && !$in_table && !$this->nobr)
         $text.=$line.$lidx."<br />\n"; 
@@ -4783,9 +4785,14 @@ if (1) {
           $twitter_card_image = $image;
         }
         else {
-          // dyndns.info 주소 변경 yhyacinth 2014/05/10
-          $image = str_replace('alice.dyndns.info', 'alice.sne.jp', $image);
-
+          // 옛 주소 처리
+          if (preg_match('/alice\.dyndns\.info/', $image)
+              or preg_match('/alice\.sne\.jp/', $image)
+          ) {
+            include_once('plugin/RobustLink.php');
+            $image = macro_RobustLink2($image);
+          }
+          
           $og .= "<meta property=\"og:image\" content=\"" . $image . "\" />\n";
 
           if (empty($twitter_card_image)) {
@@ -4798,6 +4805,14 @@ if (1) {
       // twitter card -- yhyacinth
       $twitter_card .= "<meta name=\"twitter:site\" content=\"@yhyacinth\" />\n";
       if (!empty($twitter_card_image)) {
+        // 옛 주소 처리
+        if (preg_match('/alice\.dyndns\.info/', $twitter_card_image)
+            or preg_match('/alice\.sne\.jp/', $twitter_card_image)
+        ) {
+          include_once('plugin/RobustLink.php');
+          $twitter_card = macro_RobustLink2($twitter_card);
+        }
+        
         $twitter_card .= "<meta name=\"twitter:image\" content=\"$twitter_card_image\" />\n";
       }
       $twitter_card .= "<meta name=\"twitter:card\" content=\"summary\" />\n";

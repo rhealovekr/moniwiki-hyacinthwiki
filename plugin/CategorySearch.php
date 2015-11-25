@@ -4,7 +4,6 @@
 // a FullSearch plugin for the MoniWiki
 //
 // $Id: FullSearch.php,v 1.39 2010/09/07 12:11:49 wkpark Exp $
-// $Id: patch CategorySearch.php,v 1.39 2010/09/07 12:11:49 rhealove Exp $
 
 function macro_CategorySearch($formatter,$value="", &$opts) {
   global $DBInfo;
@@ -25,7 +24,7 @@ function macro_CategorySearch($formatter,$value="", &$opts) {
   }
 
   $url=$formatter->link_url($formatter->page->urlname);
-  $fneedle=str_replace('"',"&#34;",$needle); # XXX
+  $fneedle = _html_escape($needle);
   $tooshort=!empty($DBInfo->fullsearch_tooshort) ? $DBInfo->fullsearch_tooshort:2;
 
   $m1=_("Display context of search results");
@@ -36,7 +35,7 @@ function macro_CategorySearch($formatter,$value="", &$opts) {
   $form= <<<EOF
 <form method='get' action='$url'>
    <input type='hidden' name='action' value='fullsearch' />
-   <input name='value' size='30' value='$fneedle' />
+   <input name='value' size='30' value="$fneedle" />
    <span class='button'><input type='submit' class='button' value='$msg' /></span><br />
    <input type='checkbox' name='backlinks' value='1' $bchecked />$m2<br />
    <input type='checkbox' name='context' value='20' />$m1<br />
@@ -53,12 +52,11 @@ EOF;
   $excl = array();
   $incl = array();
 
-  $test1 = $test2 = true;
   if (!empty($opts['noexpr'])) {
     $tmp=preg_split("/\s+/",$needle);
     $needle=$value=join('|',$tmp);
     $raw_needle=implode(' ',$tmp);
-    $needle=_preg_search_escape($needle);
+    $needle = preg_quote($needle);
   } else if (empty($opts['backlinks'])) {
     $terms = preg_split('/((?<!\S)[-+]?"[^"]+?"(?!\S)|\S+)/s',$needle,-1,
       PREG_SPLIT_DELIM_CAPTURE|PREG_SPLIT_NO_EMPTY);
@@ -86,36 +84,48 @@ EOF;
     $needle=_preg_search_escape($needle);
 
     $raw_needle=implode(' ',$incl);
+    $test = validate_needle($needle);
+    if ($test === false) {
+      // invalid regex
+      $tmp = array_map('preg_quote', $incl);
+      $needle = implode('|', $tmp);
+    }
+
     $excl_needle=implode('|',$excl);
 
-    $test2=@preg_match("/$excl_needle/","",$match);
+    $test = validate_needle($excl_needle);
+    if ($test2 === false) {
+      // invalid regex
+      $tmp = array_map('preg_quote', $excl);
+      $excl_needle = implode('|', $tmp);
+    }
   } else {
-    $needle=_preg_search_escape($needle);
+    $cneedle = _preg_search_escape($needle);
+    $test = validate_needle($cneedle);
+    if ($test === false) {
+      $needle = preg_quote($needle);
+    } else {
+      $needle = $cneedle;
+    }
   }
 
-  $test=@preg_match("/$needle/","",$match);
   $test3 = trim($needle);
   if (!isset($test3[0])) {
      $opts['msg'] = _("Empty expression");
-     return $form;
-  }
-  if ($test === false or $test2 === false) {
-     $opts['msg'] = sprintf(_("Invalid search expression \"%s\""), $needle);
      return $form;
   }
 
   # set arena and sid
   if (!empty($opts['backlinks'])) $arena='backlinks';
   else if (!empty($opts['keywords'])) $arena='keywords';
-  else $arena='fullsearch';
+  else $arena='categorysearch';
 
-  if ($arena == 'fullsearch') $sid = md5($value.'v'.$offset);
+  if ($arena == 'categorysearch') $sid = md5($value.'v'.$offset);
   else $sid=$value;
 
   $delay = !empty($DBInfo->default_delaytime) ? $DBInfo->default_delaytime : 0;
 
   # retrieve cache
-  #$arena = 'categorysearch';
   $fc=new Cache_text($arena);
   if (!$formatter->refresh and $fc->exists($sid)) {
     $data=$fc->fetch($sid);
@@ -173,6 +183,7 @@ EOF;
       // check invert redirect index
       if (!empty($redirects)) {
         $redirects = array_flip($redirects);
+        ksort($redirects);
         foreach ($redirects as $k=>$v) $hits[$k] = -2;
         reset($hits);
       }
@@ -216,6 +227,10 @@ EOF;
       $ret = array();
       $params['ret'] = &$ret;
       $params['offset'] = $offset;
+
+      $params['search'] = 1;
+      $params['incl'] = $incl;
+      $params['excl'] = $excl;
       $pages = $DBInfo->getPageLists($params);
 
       // set time_limit
@@ -228,6 +243,10 @@ EOF;
 
       $j = 0;
       while (list($_, $page_name) = each($pages)) {
+        // íƒìƒ‰ ì•ˆ í•  í˜ì´ì§€ -- yhyacinth
+        if (preg_match('/^FrontPage/', $page_name)) continue;
+        if (preg_match('/^Blog/', $page_name)) continue;
+        
         // check time_limit
         if ($time_limit and $j % 30 == 0) {
           $mt = explode(' ', microtime());
@@ -279,21 +298,19 @@ EOF;
   $idx=1;
   $checkbox = '';
   while (list($page_name, $count) = each($hits)) {
-    ### Ä«Å×°í¸®´Â ¸®½ºÆ®¿¡ Ãâ·Â ¾È ½ÃÅ´
-	if (preg_match('/^Category.*/', $page_name)) continue;
-
-    if (!empty($opts['checkbox'])) $checkbox="<input type='checkbox' name='pagenames[]' value='$page_name' />";
+    if (preg_match('/^Category.*/', $page_name)) continue;
+    
+    $pgname = _html_escape($page_name);
+    if (!empty($opts['checkbox'])) $checkbox="<input type='checkbox' name='pagenames[]' value=\"$pgname\" />";
     $out.= '<!-- RESULT ITEM START -->'; // for search plugin
-    ### ÇÏÀÌ¶óÀÌÆ® »ç¿ë ¾È ÇÔ 2014/03/18 hyacinth
-#    $out.= '<li>'.$checkbox.$formatter->link_tag(_rawurlencode($page_name),
-#          '?action=highlight&amp;value='._urlencode($value),
+    
+    // í•˜ì´ë¼ì´íŠ¸ ì‚¬ìš© ì•ˆ í•¨ -- yhyacinth
     $out.= '<li>'.$checkbox.$formatter->link_tag(_rawurlencode($page_name),
           '',
-          $page_name,'tabindex="'.$idx.'"');
-    ### N È¸ ÀÏÄ¡ »èÁ¦ 2014/03/18 hyacinth
+          $pgname,'tabindex="'.$idx.'"');
+    // N íšŒ ì¼ì¹˜ í‘œì‹œ ì•ˆ í•¨ -- yhyacinth
     if ($count > 0)
-      #$out.= ' . . . . ' . sprintf((($count == 1) ? _("%d match") : _("%d matches")), $count );
-      ;
+      ; // $out.= ' . . . . ' . sprintf((($count == 1) ? _("%d match") : _("%d matches")), $count );
     else if ($count == -2)
       $out.= " <span class='redirectIcon'><span>"._("Redirect page")."</span></span>\n";
     if (!empty($opts['context']) and $opts['context']>0) {
